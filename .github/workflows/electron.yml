@@ -1,0 +1,25 @@
+name: Electron weekly tariff check
+
+on:
+  schedule:
+    # 07:00 UTC every Monday ≈ 09:00 Spain time (CEST, UTC+2).
+    # Note: during winter (CET, UTC+1) this fires at 08:00 Spain time instead,
+    # since GitHub Actions cron does not follow DST.
+    - cron: "0 7 * * 1"
+  workflow_dispatch: {}
+
+jobs:
+  check-tariffs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - run: python electron.py
+        env:
+          TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
+          TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
+          TWILIO_WHATSAPP_FROM: ${{ secrets.TWILIO_WHATSAPP_FROM }}
+          TWILIO_WHATSAPP_TO: ${{ secrets.TWILIO_WHATSAPP_TO }}
