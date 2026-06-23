@@ -125,7 +125,65 @@ def parse_plenitude():
     )
 
 
-OFFICIAL_PARSERS = [parse_endesa, parse_plenitude]
+# --- OFFICIAL parser: TotalEnergies "A Tu Aire Siempre" ---
+def parse_totalenergies():
+    url = "https://www.totalenergies.es/es/hogares/tarifas-luz/a-tu-aire-siempre"
+    resp = requests.get(url, headers=HEADERS, timeout=20, allow_redirects=True)
+    resp.raise_for_status()
+    html = resp.text
+
+    # Confirm we're reading the "sin impuestos" pricing table, not the "con impuestos" one.
+    if "sin impuestos" not in html.lower():
+        raise ValueError("Could not confirm 'sin impuestos' pricing table on page")
+
+    m = re.search(
+        r"Potencia\s*&le;\s*10\s*kW</td><td>([\d.]+)</td><td>([\d.]+)</td><td>([\d.]+)</td>",
+        html,
+    )
+    if not m:
+        raise ValueError("Could not find the <=10kW pricing row")
+    potencia_p1, potencia_p2, kwh_rate = (to_float(m.group(i)) for i in (1, 2, 3))
+    potencia_day_rate = max(potencia_p1, potencia_p2)
+
+    return Offer(
+        company="TotalEnergies (A Tu Aire Siempre)",
+        potencia_eur_per_kw_month=potencia_day_rate * AVG_DAYS_PER_MONTH,
+        kwh_rate=kwh_rate,
+        source_url=url,
+        trusted=True,
+    )
+
+
+# --- OFFICIAL parser: Naturgy "Tarifa Por Uso Luz" ---
+def parse_naturgy():
+    url = "https://www.naturgy.es/hogar/luz/tarifa_por_uso_luz"
+    resp = requests.get(url, headers=HEADERS, timeout=20, allow_redirects=True)
+    resp.raise_for_status()
+    html = resp.text
+
+    energy_match = re.search(r"<p>([\d,]+)\s*€/kWh</p>", html)
+    if not energy_match:
+        raise ValueError("Could not find energy price")
+    kwh_rate = to_float(energy_match.group(1))
+
+    # data-price (sin impuestos) vs data-price-iva (con impuestos) on each potencia cell;
+    # take the highest "sin impuestos" period rate (Punta) as the conservative figure.
+    potencia_matches = re.findall(r'data-price="([\d,]+)\s*€/kW\*d[ií]a"', html)
+    if not potencia_matches:
+        raise ValueError("Could not find potencia (sin impuestos) prices")
+    potencia_day_rate = max(to_float(v) for v in potencia_matches)
+
+    return Offer(
+        company="Naturgy (Tarifa Por Uso Luz)",
+        potencia_eur_per_kw_month=potencia_day_rate * AVG_DAYS_PER_MONTH,
+        kwh_rate=kwh_rate,
+        source_url=url,
+        trusted=True,
+        note="using highest (Punta) potencia period rate",
+    )
+
+
+OFFICIAL_PARSERS = [parse_endesa, parse_plenitude, parse_totalenergies, parse_naturgy]
 
 
 # --- AGGREGATOR parser: iacompara.es blog (unverified third-party source) ---
