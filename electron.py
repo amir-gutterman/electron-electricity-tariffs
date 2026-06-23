@@ -183,7 +183,47 @@ def parse_naturgy():
     )
 
 
-OFFICIAL_PARSERS = [parse_endesa, parse_plenitude, parse_totalenergies, parse_naturgy]
+# --- OFFICIAL parser: Octopus Energy "Octopus Relax" ---
+def parse_octopus():
+    url = "https://octopusenergy.es/tarifa-octopus-relax"
+    resp = requests.get(url, headers=HEADERS, timeout=20, allow_redirects=True)
+    resp.raise_for_status()
+    html = resp.text
+
+    # The page embeds a JSON product catalog. Match the standard (non-partner-promo)
+    # "OCTORELAX-<year>-W<week>" product code -- requiring the digits to be followed
+    # immediately by a closing quote excludes partner-specific variants like
+    # "OCTORELAX-2026-W21-UNICAJA".
+    m = re.search(
+        r'"code":"(OCTORELAX-\d{4}-W\d+)".*?'
+        r'"fixedTerm":\[([\d.]+),([\d.]+)\],"variableTerm":\[([\d.]+),([\d.]+),([\d.]+)\]',
+        html,
+    )
+    if not m:
+        raise ValueError("Could not find standard OCTORELAX product pricing")
+    potencia_p1, potencia_p2 = to_float(m.group(2)), to_float(m.group(3))
+    kwh_rate = to_float(m.group(4))  # single period -- all three values are equal
+    potencia_day_rate = max(potencia_p1, potencia_p2)
+
+    return Offer(
+        company="Octopus Energy (Octopus Relax)",
+        potencia_eur_per_kw_month=potencia_day_rate * AVG_DAYS_PER_MONTH,
+        kwh_rate=kwh_rate,
+        source_url=url,
+        trusted=True,
+    )
+
+
+OFFICIAL_PARSERS = [
+    parse_endesa, parse_plenitude, parse_totalenergies, parse_naturgy, parse_octopus,
+]
+
+# Providers checked but not scrapable with simple HTTP requests, so excluded
+# rather than risk a silently-broken parser:
+#   - Iberdrola: blocks non-browser requests (403 Access Denied)
+#   - Gana Energía: served behind a Cloudflare JS challenge page
+#   - Podo: pricing is loaded client-side via JavaScript, not in the raw HTML
+#   - Repsol: public pages give inconsistent/ambiguous tax-inclusive figures
 
 
 # --- AGGREGATOR parser: iacompara.es blog (unverified third-party source) ---
