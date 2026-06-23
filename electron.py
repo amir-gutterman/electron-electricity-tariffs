@@ -26,7 +26,7 @@ CONTRACTED_POWER = 4.5      # kW
 CONSUMPTION_RATE = 0.098    # EUR/kWh
 ASSUMED_MONTHLY_KWH = 500   # variable/approximate, used for comparison only
 
-MIN_SAVINGS_THRESHOLD = 5.00  # EUR/month -- only alert above this
+MIN_SAVINGS_THRESHOLD = 2.00  # EUR/month -- only alert above this
 
 AVG_DAYS_PER_MONTH = 30.4368
 
