@@ -7,6 +7,10 @@ Approach: fixed scraping of a small set of known comparator/supplier pages.
 This is intentionally brittle -- it only understands the page structures it
 was written against, and will silently find nothing useful if a site changes
 its layout. Check the Actions run logs if it stops finding offers.
+
+Source page (iacompara.es) states power-term prices in EUR/kW/day, not
+EUR/kW/month -- they get converted using AVG_DAYS_PER_MONTH before comparing
+against the user's baseline, which is already in EUR/kW/month.
 """
 
 import os
@@ -24,19 +28,33 @@ ASSUMED_MONTHLY_KWH = 500   # variable/approximate, used for comparison only
 
 MIN_SAVINGS_THRESHOLD = 5.00  # EUR/month -- only alert above this
 
+AVG_DAYS_PER_MONTH = 30.4368
+
 BASELINE_COST = (POTENCIA_RATE * CONTRACTED_POWER) + (CONSUMPTION_RATE * ASSUMED_MONTHLY_KWH)
 
-# Pages known to publish per-kW and per-kWh rates in readable text near company names.
 SOURCES = [
-    "https://selectra.es/energia/comparador-luz",
-    "https://www.iacompara.es/blog/compania-electrica-mas-barata-2026/",
+    "https://www.iacompara.es/blog/compania-electrica-mas-barata-2026",
 ]
 
 HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; ElectronTariffBot/1.0)"}
 
-# Matches things like "0,098 €/kWh" or "0.098 EUR/kWh" and "3,62 €/kW" near a company name.
-PRICE_KWH_RE = re.compile(r"(\d+[.,]\d+)\s*(?:€|EUR)\s*/\s*kWh", re.IGNORECASE)
-PRICE_KW_RE = re.compile(r"(\d+[.,]\d+)\s*(?:€|EUR)\s*/\s*kW", re.IGNORECASE)
+# "📊 Company Tariff Name:" block header
+BLOCK_HEADER_RE = re.compile(r"^📊\s*(.+?):\s*$")
+# "✅ Precio potencia punta/valle: X €/kW/día" or "✅ Precio potencia: X €/kW/día"
+PRECIO_POTENCIA_RE = re.compile(
+    r"Precio potencia(?:\s+(valle|punta))?:\s*(\d+[.,]\d+)\s*€/kW/d[ií]a", re.IGNORECASE
+)
+# "✅ Precio energía: X €/kWh"
+PRECIO_ENERGIA_RE = re.compile(r"Precio energ[ií]a:\s*(\d+[.,]\d+)\s*€/kWh", re.IGNORECASE)
+# "   • Potencia: X €/kW/día" or "   • Potencia valle: X €/kW/día | Punta: Y €/kW/día"
+BULLET_POTENCIA_RE = re.compile(
+    r"Potencia(?:\s+valle)?:\s*(\d+[.,]\d+)\s*€/kW/d[ií]a(?:\s*\|\s*Punta:\s*(\d+[.,]\d+)\s*€/kW/d[ií]a)?",
+    re.IGNORECASE,
+)
+# "   • Energía: X €/kWh"
+BULLET_ENERGIA_RE = re.compile(r"Energ[ií]a:\s*(\d+[.,]\d+)\s*€/kWh", re.IGNORECASE)
+# Heading lines (h2/h3 text), used as a fallback name anchor
+HEADING_NAME_RE = re.compile(r"^[🌟⚡🔄☀️🥇🥈🥉]*\s*([A-ZÀ-Ý][\w À-ÿ&\.\-]{2,50})$")
 
 
 def to_float(s: str) -> float:
@@ -44,22 +62,79 @@ def to_float(s: str) -> float:
 
 
 def find_offers(html: str):
-    """Best-effort extraction: look for a company-like heading followed within
-    a short distance by both a kWh price and a kW price. Returns a list of
-    (company, kw_rate, kwh_rate) tuples. Heuristic and brittle by design."""
+    """Walk the rendered text line by line, tracking the most recent block
+    name (from a '📊 Name:' header or a heading), and pairing it with the
+    next potencia (€/kW/día) and energia (€/kWh) values found before the
+    next block starts. Returns a list of (name, potencia_eur_per_kw_day,
+    consumo_eur_per_kwh)."""
     soup = BeautifulSoup(html, "html.parser")
-    text_blocks = [el.get_text(" ", strip=True) for el in soup.find_all(["tr", "li", "div", "p"])]
+    for tag in soup(["script", "style"]):
+        tag.decompose()
+
+    lines = [l.strip() for l in soup.get_text("\n").split("\n") if l.strip()]
 
     offers = []
-    for block in text_blocks:
-        kwh_match = PRICE_KWH_RE.search(block)
-        kw_match = PRICE_KW_RE.search(block)
-        if kwh_match and kw_match:
-            # crude company name guess: first capitalized word sequence in the block
-            name_match = re.match(r"\s*([A-ZÀ-Ý][\wÀ-ÿ&\.\- ]{2,40})", block)
-            company = name_match.group(1).strip() if name_match else "Unknown supplier"
-            offers.append((company, to_float(kw_match.group(1)), to_float(kwh_match.group(1))))
-    return offers
+    current_name = None
+    current_potencia = None
+    current_energia = None
+
+    def flush():
+        if current_name and current_potencia is not None and current_energia is not None:
+            offers.append((current_name, current_potencia, current_energia))
+
+    for line in lines:
+        header_match = BLOCK_HEADER_RE.match(line)
+        if header_match:
+            flush()
+            current_name = header_match.group(1).strip()
+            current_potencia = None
+            current_energia = None
+            continue
+
+        precio_potencia = PRECIO_POTENCIA_RE.search(line)
+        if precio_potencia:
+            period, value = precio_potencia.group(1), precio_potencia.group(2)
+            rate = to_float(value)
+            # Prefer the "punta" (peak) rate when both periods are reported
+            # separately across lines, since that's the higher/more conservative figure.
+            if period is None or period.lower() == "punta" or current_potencia is None:
+                current_potencia = rate
+            continue
+
+        precio_energia = PRECIO_ENERGIA_RE.search(line)
+        if precio_energia:
+            current_energia = to_float(precio_energia.group(1))
+            continue
+
+        bullet_potencia = BULLET_POTENCIA_RE.search(line)
+        if bullet_potencia:
+            valle_val, punta_val = bullet_potencia.group(1), bullet_potencia.group(2)
+            # Use punta (peak) if present, otherwise the single reported value.
+            current_potencia = to_float(punta_val) if punta_val else to_float(valle_val)
+            continue
+
+        bullet_energia = BULLET_ENERGIA_RE.search(line)
+        if bullet_energia:
+            current_energia = to_float(bullet_energia.group(1))
+            continue
+
+        heading_match = HEADING_NAME_RE.match(line)
+        if heading_match and current_potencia is None and current_energia is None:
+            # A new heading with no data collected yet under the previous name:
+            # treat it as a fresh anchor (covers Octopus's h3-per-tariff layout).
+            current_name = heading_match.group(1).strip()
+
+    flush()
+
+    # Dedupe identical (name, potencia, energia) tuples -- the source page
+    # repeats the same tariff's numbers in multiple sections.
+    seen = set()
+    deduped = []
+    for offer in offers:
+        if offer not in seen:
+            seen.add(offer)
+            deduped.append(offer)
+    return deduped
 
 
 def main():
@@ -69,11 +144,11 @@ def main():
 
     best_company = None
     best_cost = None
-    best_savings = -1
+    best_savings = -10**9
 
     for url in SOURCES:
         try:
-            resp = requests.get(url, headers=HEADERS, timeout=20)
+            resp = requests.get(url, headers=HEADERS, timeout=20, allow_redirects=True)
             resp.raise_for_status()
         except requests.RequestException as e:
             print(f"Skipping {url}: fetch failed ({e})")
@@ -82,14 +157,16 @@ def main():
         offers = find_offers(resp.text)
         print(f"{url}: found {len(offers)} candidate offer(s)")
 
-        for company, kw_rate, kwh_rate in offers:
-            cost = (kw_rate * CONTRACTED_POWER) + (kwh_rate * ASSUMED_MONTHLY_KWH)
+        for name, potencia_day_rate, kwh_rate in offers:
+            potencia_month_rate = potencia_day_rate * AVG_DAYS_PER_MONTH
+            cost = (potencia_month_rate * CONTRACTED_POWER) + (kwh_rate * ASSUMED_MONTHLY_KWH)
             savings = BASELINE_COST - cost
-            print(f"  {company}: {kw_rate} EUR/kW, {kwh_rate} EUR/kWh -> "
+            print(f"  {name}: {potencia_day_rate} EUR/kW/day "
+                  f"(~{potencia_month_rate:.2f} EUR/kW/mo), {kwh_rate} EUR/kWh -> "
                   f"~{cost:.2f} EUR/mo (savings: {savings:.2f} EUR/mo)")
             if savings > best_savings:
                 best_savings = savings
-                best_company = company
+                best_company = name
                 best_cost = cost
 
     if best_company is None or best_savings <= MIN_SAVINGS_THRESHOLD:
