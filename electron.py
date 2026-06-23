@@ -15,7 +15,8 @@ against the user's baseline, which is already in EUR/kW/month.
 
 import os
 import re
-import sys
+import smtplib
+from email.message import EmailMessage
 
 import requests
 from bs4 import BeautifulSoup
@@ -173,28 +174,34 @@ def main():
         print(f"No offer found with savings > {MIN_SAVINGS_THRESHOLD} EUR/mo. No message sent.")
         return
 
-    message = (
-        f"⚡ Electron: {best_company} offers ~{best_cost:.0f} EUR/mo "
-        f"vs your ~{BASELINE_COST:.0f} EUR/mo (save ~{best_savings:.0f} EUR/mo). Check their rates."
+    subject = f"Electron: cheaper tariff found - {best_company}"
+    body = (
+        f"{best_company} offers an estimated ~{best_cost:.2f} EUR/month "
+        f"vs your current ~{BASELINE_COST:.2f} EUR/month baseline "
+        f"(save ~{best_savings:.2f} EUR/month).\n\n"
+        f"Source: {SOURCES[0]}\n\n"
+        "This is an automated estimate based on scraped tariff data - verify directly "
+        "with the supplier before switching."
     )
-    send_whatsapp(message)
+    send_email(subject, body)
 
 
-def send_whatsapp(message: str):
-    account_sid = os.environ["TWILIO_ACCOUNT_SID"]
-    auth_token = os.environ["TWILIO_AUTH_TOKEN"]
-    from_number = os.environ["TWILIO_WHATSAPP_FROM"]
-    to_number = os.environ["TWILIO_WHATSAPP_TO"]
+def send_email(subject: str, body: str):
+    gmail_address = os.environ["GMAIL_ADDRESS"]
+    gmail_app_password = os.environ["GMAIL_APP_PASSWORD"]
+    to_address = os.environ.get("ALERT_EMAIL_TO", gmail_address)
 
-    resp = requests.post(
-        f"https://api.twilio.com/2010-04-01/Accounts/{account_sid}/Messages.json",
-        data={"To": to_number, "From": from_number, "Body": message},
-        auth=(account_sid, auth_token),
-        timeout=20,
-    )
-    print(f"Twilio response: {resp.status_code} {resp.text}")
-    if resp.status_code >= 300:
-        sys.exit(1)
+    msg = EmailMessage()
+    msg["Subject"] = subject
+    msg["From"] = gmail_address
+    msg["To"] = to_address
+    msg.set_content(body)
+
+    with smtplib.SMTP("smtp.gmail.com", 587) as smtp:
+        smtp.starttls()
+        smtp.login(gmail_address, gmail_app_password)
+        smtp.send_message(msg)
+    print(f"Email sent to {to_address}")
 
 
 if __name__ == "__main__":
