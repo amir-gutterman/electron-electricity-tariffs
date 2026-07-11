@@ -1,0 +1,7 @@
+{
+  "potencia_rate": 3.62,
+  "contracted_power": 4.5,
+  "consumption_rate": 0.098,
+  "assumed_monthly_kwh": 500,
+  "min_savings_threshold": 2.0
+}

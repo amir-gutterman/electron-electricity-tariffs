@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Electron — Tariff Checker</title>
+<style>
+  :root {
+    --bg: #f4f6fb; --surface: #ffffff; --border: #e2e8f0;
+    --text: #1a202c; --muted: #64748b; --accent: #6366f1;
+    --green: #16a34a; --red: #dc2626; --yellow: #b45309;
+    --green-bg: rgba(22,163,74,.1); --red-bg: rgba(220,38,38,.1);
+    --yellow-bg: rgba(180,83,9,.12);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: system-ui, sans-serif;
+         font-size: 14px; line-height: 1.6; padding: 24px; }
+  h1 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+  .subtitle { color: var(--muted); margin-bottom: 24px; font-size: 13px; }
+  .grid { display: grid; grid-template-columns: 340px 1fr; gap: 20px; align-items: start; }
+  @media(max-width:760px){ .grid { grid-template-columns: 1fr; } }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+  .card h2 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em;
+              color: var(--muted); margin-bottom: 16px; }
+  label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; margin-top: 12px; }
+  label:first-of-type { margin-top: 0; }
+  input[type=number], input[type=password], input[type=text] {
+    width: 100%; background: #f8fafc; border: 1px solid var(--border); border-radius: 8px;
+    color: var(--text); padding: 8px 10px; font-size: 14px;
+  }
+  input:focus { outline: 2px solid var(--accent); border-color: transparent; }
+  .baseline-row { background: var(--bg); border-radius: 8px; padding: 12px; margin-top: 16px;
+                  display: flex; justify-content: space-between; align-items: center; }
+  .baseline-label { color: var(--muted); font-size: 12px; }
+  .baseline-val { font-size: 20px; font-weight: 700; color: var(--yellow); }
+  .btn {
+    margin-top: 12px; width: 100%; padding: 11px; border-radius: 8px;
+    font-size: 14px; font-weight: 600; border: none; cursor: pointer; transition: opacity .15s;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-secondary { background: var(--bg); color: var(--text); border: 1px solid var(--border); margin-top: 8px; }
+  .btn:hover { opacity: .85; }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+  .status { margin-top: 10px; font-size: 12px; color: var(--muted); min-height: 18px; text-align: center; }
+  .last-run { font-size: 11px; color: var(--muted); margin-bottom: 14px; }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .06em;
+       color: var(--muted); padding: 6px 10px; border-bottom: 1px solid var(--border); }
+  td { padding: 10px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  .pill { display: inline-block; font-size: 10px; font-weight: 600; padding: 2px 7px;
+          border-radius: 99px; letter-spacing: .04em; }
+  .pill-green  { background: var(--green-bg);  color: var(--green); }
+  .pill-red    { background: var(--red-bg);    color: var(--red); }
+  .pill-yellow { background: var(--yellow-bg); color: var(--yellow); }
+  .company-name { font-weight: 600; }
+  .company-note { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .savings-pos { color: var(--green); font-weight: 700; }
+  .savings-neg { color: var(--red); font-weight: 700; }
+  .empty { color: var(--muted); text-align: center; padding: 40px 0; font-size: 13px; }
+  .alert-banner { margin-bottom: 14px; padding: 12px 16px; border-radius: 8px;
+                  background: var(--green-bg); border: 1px solid var(--green);
+                  color: var(--green); font-weight: 600; font-size: 13px; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .spinner { display: inline-block; width: 13px; height: 13px; border: 2px solid rgba(99,102,241,.3);
+             border-top-color: var(--accent); border-radius: 50%; animation: spin .6s linear infinite;
+             vertical-align: middle; margin-right: 6px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .token-section { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); }
+  .token-hint { font-size: 11px; color: var(--muted); margin-top: 6px; line-height: 1.5; }
+  .run-status { font-size: 12px; color: var(--muted); margin-top: 8px; text-align: center; min-height: 16px; }
+  .tag-unverified { font-size: 10px; color: var(--yellow); margin-left: 6px; }
+  .divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+</style>
+</head>
+<body>
+
+<h1>&#x26a1; Electron</h1>
+<p class="subtitle">Spanish electricity tariff checker &mdash; compares official provider rates against your contract</p>
+
+<div class="grid">
+  <!-- Left panel -->
+  <div>
+    <div class="card">
+      <h2>Your current tariff (before IVA)</h2>
+
+      <label>Potencia rate (&#x20AC;/kW/month)</label>
+      <input type="number" id="potencia_rate" step="0.001" min="0">
+
+      <label>Contracted power (kW)</label>
+      <input type="number" id="contracted_power" step="0.1" min="0">
+
+      <label>Energy rate (&#x20AC;/kWh)</label>
+      <input type="number" id="consumption_rate" step="0.001" min="0">
+
+      <label>Assumed monthly consumption (kWh)</label>
+      <input type="number" id="assumed_monthly_kwh" step="10" min="0">
+
+      <label>Alert threshold (&#x20AC;/month savings)</label>
+      <input type="number" id="min_savings_threshold" step="0.5" min="0">
+
+      <div class="baseline-row">
+        <span class="baseline-label">Your monthly baseline</span>
+        <span class="baseline-val" id="baseline-display">&#x20AC;&#x2014;</span>
+      </div>
+
+      <button class="btn btn-secondary" onclick="saveConfig()">Save tariff settings</button>
+      <div class="status" id="save-status"></div>
+
+      <hr class="divider">
+
+      <button class="btn btn-primary" id="run-btn" onclick="runNow()">&#x25B6; Run now</button>
+      <div class="run-status" id="run-status"></div>
+
+      <div class="token-section">
+        <label>GitHub Personal Access Token</label>
+        <input type="password" id="gh-token" placeholder="ghp_…" autocomplete="off">
+        <p class="token-hint">
+          Needed to trigger runs and save settings.<br>
+          <a href="https://github.com/settings/tokens/new?scopes=repo,workflow&description=Electron+tariff+checker" target="_blank">Create a token</a>
+          (needs <code>repo</code> + <code>workflow</code> scopes) &mdash; stored only in your browser.
+        </p>
+        <button class="btn btn-secondary" style="margin-top:8px" onclick="saveToken()">Save token</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right panel -->
+  <div class="card">
+    <h2>Latest results</h2>
+    <div id="last-run" class="last-run"></div>
+    <div id="alert-area"></div>
+    <div id="results"><div class="empty">Loading last results&hellip;</div></div>
+  </div>
+</div>
+
+<script>
+const REPO = "amir-gutterman/electron-electricity-tariffs";
+const WORKFLOW_FILE = "electron.yml";
+const RESULTS_URL = "results.json";
+const CONFIG_PATH = "config.json";
+
+const fields = ['potencia_rate','contracted_power','consumption_rate','assumed_monthly_kwh','min_savings_threshold'];
+
+// --- Token management ---
+function getToken() { return localStorage.getItem('gh_token') || ''; }
+function saveToken() {
+  const t = document.getElementById('gh-token').value.trim();
+  if (!t) return;
+  localStorage.setItem('gh_token', t);
+  document.getElementById('gh-token').value = '';
+  alert('Token saved to browser storage.');
+}
+
+// --- Baseline calc ---
+function calcBaseline() {
+  const p = parseFloat(document.getElementById('potencia_rate').value) || 0;
+  const c = parseFloat(document.getElementById('contracted_power').value) || 0;
+  const e = parseFloat(document.getElementById('consumption_rate').value) || 0;
+  const k = parseFloat(document.getElementById('assumed_monthly_kwh').value) || 0;
+  document.getElementById('baseline-display').textContent = '€' + ((p*c)+(e*k)).toFixed(2);
+}
+fields.forEach(f => {
+  const el = document.getElementById(f);
+  if (el) el.addEventListener('input', calcBaseline);
+});
+
+// --- Load results.json ---
+async function loadResults() {
+  try {
+    const resp = await fetch(RESULTS_URL + '?t=' + Date.now());
+    if (!resp.ok) throw new Error('No results yet');
+    const data = await resp.json();
+    applyConfig(data.config);
+    renderResults(data);
+  } catch(e) {
+    document.getElementById('results').innerHTML =
+      '<div class="empty">No results yet &mdash; hit "Run now" to fetch live data.</div>';
+  }
+}
+
+function applyConfig(cfg) {
+  if (!cfg) return;
+  fields.forEach(f => {
+    const el = document.getElementById(f);
+    if (el && cfg[f] !== undefined) el.value = cfg[f];
+  });
+  calcBaseline();
+}
+
+// --- Save config via GitHub API ---
+async function saveConfig() {
+  const token = getToken();
+  if (!token) { alert('Enter your GitHub token first.'); return; }
+
+  const cfg = {};
+  fields.forEach(f => cfg[f] = parseFloat(document.getElementById(f).value));
+
+  const status = document.getElementById('save-status');
+  status.textContent = 'Saving…';
+
+  try {
+    // Get current SHA of config.json
+    const meta = await ghApi(`contents/${CONFIG_PATH}`);
+    const sha = meta.sha;
+
+    const content = btoa(JSON.stringify(cfg, null, 2) + '\n');
+    await ghApi(`contents/${CONFIG_PATH}`, 'PUT', {
+      message: 'chore: update tariff config',
+      content,
+      sha,
+    });
+    status.textContent = 'Saved! Trigger a run to apply.';
+  } catch(e) {
+    status.textContent = 'Error: ' + e.message;
+  }
+}
+
+// --- Trigger workflow ---
+async function runNow() {
+  const token = getToken();
+  if (!token) { alert('Enter your GitHub token first.'); return; }
+
+  const btn = document.getElementById('run-btn');
+  const status = document.getElementById('run-status');
+  btn.disabled = true;
+  btn.textContent = 'Queued…';
+  status.textContent = 'Triggering GitHub Actions run…';
+
+  try {
+    await ghApi(`actions/workflows/${WORKFLOW_FILE}/dispatches`, 'POST', { ref: 'main' });
+    status.textContent = 'Run started! GitHub Actions takes ~2 min. Refresh the page after.';
+    btn.textContent = '▶ Run now';
+    btn.disabled = false;
+  } catch(e) {
+    status.textContent = 'Error: ' + e.message;
+    btn.textContent = '▶ Run now';
+    btn.disabled = false;
+  }
+}
+
+async function ghApi(path, method = 'GET', body = null) {
+  const token = getToken();
+  const opts = {
+    method,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28',
+    },
+  };
+  if (body) opts.body = JSON.stringify(body);
+  const resp = await fetch(`https://api.github.com/repos/${REPO}/${path}`, opts);
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({}));
+    throw new Error(err.message || resp.statusText);
+  }
+  return method === 'POST' ? null : resp.json();
+}
+
+// --- Render results ---
+function renderResults(data) {
+  if (data.run_at) {
+    const d = new Date(data.run_at);
+    document.getElementById('last-run').textContent =
+      'Last run: ' + d.toLocaleString(undefined, {dateStyle:'medium', timeStyle:'short'});
+  }
+
+  if (data.alert_sent) {
+    document.getElementById('alert-area').innerHTML =
+      '<div class="alert-banner">&#x2705; Cheaper offer found on this run &mdash; alert email sent.</div>';
+  } else {
+    document.getElementById('alert-area').innerHTML = '';
+  }
+
+  if (!data.offers || !data.offers.length) {
+    document.getElementById('results').innerHTML = '<div class="empty">No offers in last result.</div>';
+    return;
+  }
+
+  const threshold = data.config ? data.config.min_savings_threshold : 2;
+
+  const sorted = [...data.offers].sort((a,b) => {
+    if (a.trusted !== b.trusted) return b.trusted - a.trusted;
+    return b.savings - a.savings;
+  });
+
+  let html = `<table>
+    <thead><tr>
+      <th>Provider</th>
+      <th>Potencia (&#x20ac;/kW/mo)</th>
+      <th>Energy (&#x20ac;/kWh)</th>
+      <th>Est. monthly</th>
+      <th>vs yours</th>
+    </tr></thead><tbody>`;
+
+  for (const o of sorted) {
+    const savClass = o.savings > 0 ? 'savings-pos' : 'savings-neg';
+    const savSign  = o.savings > 0 ? '−' : '+';
+    const savAbs   = Math.abs(o.savings).toFixed(2);
+    const pill = o.trusted
+      ? (o.savings > threshold
+          ? '<span class="pill pill-green">CHEAPER</span>'
+          : o.savings > 0
+            ? '<span class="pill pill-yellow">MARGINAL</span>'
+            : '<span class="pill pill-red">PRICIER</span>')
+      : '<span class="pill pill-yellow">UNVERIFIED</span>';
+    const unverTag = o.trusted ? '' : '<span class="tag-unverified">&#x26A0; aggregator</span>';
+
+    html += `<tr>
+      <td>
+        <div class="company-name"><a href="${o.url}" target="_blank">${o.company}</a>${unverTag}</div>
+        ${o.note ? `<div class="company-note">${o.note}</div>` : ''}
+      </td>
+      <td>${o.potencia.toFixed(4)}</td>
+      <td>${o.kwh_rate.toFixed(4)}</td>
+      <td>&#x20ac;${o.cost.toFixed(2)}</td>
+      <td><span class="${savClass}">${savSign}&#x20ac;${savAbs}/mo</span><br>${pill}</td>
+    </tr>`;
+  }
+
+  html += '</tbody></table>';
+  document.getElementById('results').innerHTML = html;
+}
+
+// Init
+if (getToken()) document.getElementById('gh-token').placeholder = 'token saved — enter new to replace';
+loadResults();
+</script>
+</body>
+</html>

@@ -16,21 +16,34 @@ exact page structure it was written against, and will silently find nothing
 if a site redesigns. Check the Actions run logs if it stops finding offers.
 """
 
+import json
 import os
 import re
 import smtplib
+from datetime import datetime, timezone
 from email.message import EmailMessage
+from pathlib import Path
 
 import requests
 from bs4 import BeautifulSoup
 
 # --- User's current tariff (before tax / IVA) ---
+# Defaults; overridden at runtime by config.json if present.
 POTENCIA_RATE = 3.62        # EUR/kW/month
 CONTRACTED_POWER = 4.5      # kW
 CONSUMPTION_RATE = 0.098    # EUR/kWh
 ASSUMED_MONTHLY_KWH = 500   # variable/approximate, used for comparison only
 
 MIN_SAVINGS_THRESHOLD = 2.00  # EUR/month -- only alert above this
+
+_cfg_path = Path(__file__).parent / "config.json"
+if _cfg_path.exists():
+    _cfg = json.loads(_cfg_path.read_text())
+    POTENCIA_RATE = float(_cfg.get("potencia_rate", POTENCIA_RATE))
+    CONTRACTED_POWER = float(_cfg.get("contracted_power", CONTRACTED_POWER))
+    CONSUMPTION_RATE = float(_cfg.get("consumption_rate", CONSUMPTION_RATE))
+    ASSUMED_MONTHLY_KWH = float(_cfg.get("assumed_monthly_kwh", ASSUMED_MONTHLY_KWH))
+    MIN_SAVINGS_THRESHOLD = float(_cfg.get("min_savings_threshold", MIN_SAVINGS_THRESHOLD))
 
 AVG_DAYS_PER_MONTH = 30.4368
 
@@ -315,6 +328,128 @@ def parse_aggregator():
     return result
 
 
+def _make_offer_dict(offer, baseline_cost):
+    return {
+        "company": offer.company,
+        "potencia": round(offer.potencia_eur_per_kw_month, 4),
+        "kwh_rate": round(offer.kwh_rate, 4),
+        "cost": round(offer.cost, 2),
+        "savings": round(offer.savings, 2),
+        "url": offer.source_url,
+        "trusted": offer.trusted,
+        "note": offer.note,
+    }
+
+
+def run_check(config=None):
+    """Run the tariff check with optional config overrides.
+
+    config keys: potencia_rate, contracted_power, consumption_rate,
+                 assumed_monthly_kwh, min_savings_threshold.
+    Returns a dict with keys: baseline, offers, best, alert_sent.
+    """
+    potencia_rate = float(config.get("potencia_rate", POTENCIA_RATE)) if config else POTENCIA_RATE
+    contracted_power = float(config.get("contracted_power", CONTRACTED_POWER)) if config else CONTRACTED_POWER
+    consumption_rate = float(config.get("consumption_rate", CONSUMPTION_RATE)) if config else CONSUMPTION_RATE
+    assumed_kwh = float(config.get("assumed_monthly_kwh", ASSUMED_MONTHLY_KWH)) if config else ASSUMED_MONTHLY_KWH
+    threshold = float(config.get("min_savings_threshold", MIN_SAVINGS_THRESHOLD)) if config else MIN_SAVINGS_THRESHOLD
+
+    baseline = (potencia_rate * contracted_power) + (consumption_rate * assumed_kwh)
+
+    # Patch globals so Offer cost/savings calculations use the live config
+    import electron as _self
+    orig = (_self.POTENCIA_RATE, _self.CONTRACTED_POWER, _self.CONSUMPTION_RATE,
+            _self.ASSUMED_MONTHLY_KWH, _self.BASELINE_COST)
+    _self.POTENCIA_RATE = potencia_rate
+    _self.CONTRACTED_POWER = contracted_power
+    _self.CONSUMPTION_RATE = consumption_rate
+    _self.ASSUMED_MONTHLY_KWH = assumed_kwh
+    _self.BASELINE_COST = baseline
+
+    all_offers = []
+    errors = []
+
+    try:
+        for parser in OFFICIAL_PARSERS:
+            try:
+                offer = parser()
+                all_offers.append(offer)
+            except Exception as e:
+                errors.append({"parser": parser.__name__, "error": str(e)})
+
+        try:
+            for offer in parse_aggregator():
+                all_offers.append(offer)
+        except Exception as e:
+            errors.append({"parser": "parse_aggregator", "error": str(e)})
+    finally:
+        (_self.POTENCIA_RATE, _self.CONTRACTED_POWER, _self.CONSUMPTION_RATE,
+         _self.ASSUMED_MONTHLY_KWH, _self.BASELINE_COST) = orig
+
+    trusted = [o for o in all_offers if o.trusted]
+    best = max(trusted, key=lambda o: o.savings, default=None)
+
+    alert_sent = False
+    if best and best.savings > threshold:
+        try:
+            subject = f"⚡ Electron: cheaper tariff found - {best.company}"
+            body = (
+                f"{best.company} offers an estimated ~{best.cost:.2f} EUR/month "
+                f"vs your current ~{baseline:.2f} EUR/month baseline "
+                f"(save ~{best.savings:.2f} EUR/month).\n\n"
+                f"Source (official supplier page): {best.source_url}\n"
+                + (f"Note: {best.note}\n" if best.note else "")
+                + "\nThis is an automated estimate based on scraped tariff data - verify directly "
+                "with the supplier before switching."
+            )
+            send_email(subject, body)
+            alert_sent = True
+        except Exception as e:
+            errors.append({"parser": "send_email", "error": str(e)})
+
+    return {
+        "baseline": round(baseline, 2),
+        "offers": [_make_offer_dict(o, baseline) for o in all_offers],
+        "best": _make_offer_dict(best, baseline) if best else None,
+        "alert_sent": alert_sent,
+        "threshold": threshold,
+        "errors": errors,
+    }
+
+
+def _write_results(all_offers, alert_sent):
+    """Write results.json into docs/ so GitHub Pages can serve it."""
+    docs = Path(__file__).parent / "docs"
+    docs.mkdir(exist_ok=True)
+    payload = {
+        "run_at": datetime.now(timezone.utc).isoformat(),
+        "baseline": round(BASELINE_COST, 2),
+        "config": {
+            "potencia_rate": POTENCIA_RATE,
+            "contracted_power": CONTRACTED_POWER,
+            "consumption_rate": CONSUMPTION_RATE,
+            "assumed_monthly_kwh": ASSUMED_MONTHLY_KWH,
+            "min_savings_threshold": MIN_SAVINGS_THRESHOLD,
+        },
+        "alert_sent": alert_sent,
+        "offers": [
+            {
+                "company": o.company,
+                "potencia": round(o.potencia_eur_per_kw_month, 4),
+                "kwh_rate": round(o.kwh_rate, 4),
+                "cost": round(o.cost, 2),
+                "savings": round(o.savings, 2),
+                "url": o.source_url,
+                "trusted": o.trusted,
+                "note": o.note,
+            }
+            for o in all_offers
+        ],
+    }
+    (docs / "results.json").write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    print("Results written to docs/results.json")
+
+
 def main():
     print(f"Baseline cost: {BASELINE_COST:.2f} EUR/month "
           f"({POTENCIA_RATE} EUR/kW * {CONTRACTED_POWER} kW + "
@@ -339,26 +474,27 @@ def main():
     except Exception as e:
         print(f"Skipping aggregator source: failed ({e})")
 
-    # Only OFFICIAL offers can trigger an alert -- aggregator data is logged
-    # above for visibility but is not trustworthy enough to act on alone.
     trusted_offers = [o for o in all_offers if o.trusted]
     best = max(trusted_offers, key=lambda o: o.savings, default=None)
 
-    if best is None or best.savings <= MIN_SAVINGS_THRESHOLD:
+    alert_sent = False
+    if best is not None and best.savings > MIN_SAVINGS_THRESHOLD:
+        subject = f"Electron: cheaper tariff found - {best.company}"
+        body = (
+            f"{best.company} offers an estimated ~{best.cost:.2f} EUR/month "
+            f"vs your current ~{BASELINE_COST:.2f} EUR/month baseline "
+            f"(save ~{best.savings:.2f} EUR/month).\n\n"
+            f"Source (official supplier page): {best.source_url}\n"
+            + (f"Note: {best.note}\n" if best.note else "")
+            + "\nThis is an automated estimate based on scraped tariff data - verify directly "
+            "with the supplier before switching."
+        )
+        send_email(subject, body)
+        alert_sent = True
+    else:
         print(f"No official offer found with savings > {MIN_SAVINGS_THRESHOLD} EUR/mo. No message sent.")
-        return
 
-    subject = f"Electron: cheaper tariff found - {best.company}"
-    body = (
-        f"{best.company} offers an estimated ~{best.cost:.2f} EUR/month "
-        f"vs your current ~{BASELINE_COST:.2f} EUR/month baseline "
-        f"(save ~{best.savings:.2f} EUR/month).\n\n"
-        f"Source (official supplier page): {best.source_url}\n"
-        + (f"Note: {best.note}\n" if best.note else "")
-        + "\nThis is an automated estimate based on scraped tariff data - verify directly "
-        "with the supplier before switching."
-    )
-    send_email(subject, body)
+    _write_results(all_offers, alert_sent)
 
 
 def send_email(subject: str, body: str):

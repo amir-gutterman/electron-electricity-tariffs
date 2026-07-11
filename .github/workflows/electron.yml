@@ -11,6 +11,8 @@ on:
 jobs:
   check-tariffs:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -22,3 +24,10 @@ jobs:
           GMAIL_ADDRESS: ${{ secrets.GMAIL_ADDRESS }}
           GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
           ALERT_EMAIL_TO: ${{ secrets.ALERT_EMAIL_TO }}
+      - name: Commit results
+        run: |
+          git config user.name "electron-bot"
+          git config user.email "actions@github.com"
+          git add docs/results.json
+          git diff --cached --quiet || git commit -m "chore: update tariff results [skip ci]"
+          git push
