@@ -1,11 +1,11 @@
 {
-  "run_at": "2026-07-20T10:10:39.176686+00:00",
-  "baseline": 65.29,
+  "run_at": "2026-07-27T10:43:00.354376+00:00",
+  "baseline": 60.57,
   "config": {
-    "potencia_rate": 3.62,
+    "potencia_rate": 3.66,
     "contracted_power": 4.5,
     "consumption_rate": 0.098,
-    "assumed_monthly_kwh": 500.0,
+    "assumed_monthly_kwh": 450.0,
     "min_savings_threshold": 2.0
   },
   "alert_sent": true,
@@ -13,19 +13,19 @@
     {
       "company": "Endesa (Tarifa Luz Fija 24h Online)",
       "potencia": 2.849,
-      "kwh_rate": 0.1603,
-      "cost": 92.97,
-      "savings": -27.68,
+      "kwh_rate": 0.1557,
+      "cost": 82.89,
+      "savings": -22.32,
       "url": "https://www.endesa.com/es/luz-y-gas/luz/one/tarifa-one-luz",
       "trusted": true,
       "note": "using standard post-promo energy rate"
     },
     {
       "company": "Plenitude (F\u00e1cil Luz)",
-      "potencia": 3.62,
+      "potencia": 3.66,
       "kwh_rate": 0.1,
-      "cost": 66.28,
-      "savings": -0.99,
+      "cost": 61.46,
+      "savings": -0.89,
       "url": "https://eniplenitude.es/hogar/tarifas-luz/facil/",
       "trusted": true,
       "note": "potencia not published by supplier; assumed equal to current rate"
@@ -34,8 +34,8 @@
       "company": "TotalEnergies (A Tu Aire Siempre)",
       "potencia": 2.6259,
       "kwh_rate": 0.0999,
-      "cost": 61.77,
-      "savings": 3.52,
+      "cost": 56.77,
+      "savings": 3.8,
       "url": "https://www.totalenergies.es/es/hogares/tarifas-luz/a-tu-aire-siempre",
       "trusted": true,
       "note": ""
@@ -43,9 +43,9 @@
     {
       "company": "Octopus Energy (Octopus Relax)",
       "potencia": 2.8306,
-      "kwh_rate": 0.103,
-      "cost": 64.24,
-      "savings": 1.05,
+      "kwh_rate": 0.119,
+      "cost": 66.29,
+      "savings": -5.72,
       "url": "https://octopusenergy.es/tarifa-octopus-relax",
       "trusted": true,
       "note": ""
@@ -54,8 +54,8 @@
       "company": "Octopus Energy",
       "potencia": 2.9524,
       "kwh_rate": 0.129,
-      "cost": 77.79,
-      "savings": -12.5,
+      "cost": 71.34,
+      "savings": -10.77,
       "url": "https://www.iacompara.es/blog/compania-electrica-mas-barata-2026",
       "trusted": false,
       "note": ""
@@ -64,8 +64,8 @@
       "company": "OCTOPUS RELAX",
       "potencia": 1.8871,
       "kwh_rate": 0.129,
-      "cost": 72.99,
-      "savings": -7.7,
+      "cost": 66.54,
+      "savings": -5.97,
       "url": "https://www.iacompara.es/blog/compania-electrica-mas-barata-2026",
       "trusted": false,
       "note": ""
@@ -74,8 +74,8 @@
       "company": "TotalEnergies A Tu Aire Siempre",
       "potencia": 2.2219,
       "kwh_rate": 0.11,
-      "cost": 65.0,
-      "savings": 0.29,
+      "cost": 59.5,
+      "savings": 1.07,
       "url": "https://www.iacompara.es/blog/compania-electrica-mas-barata-2026",
       "trusted": false,
       "note": ""
@@ -84,8 +84,8 @@
       "company": "Gana Energ\u00eda Tarifa 24 Horas",
       "potencia": 2.7089,
       "kwh_rate": 0.111,
-      "cost": 67.69,
-      "savings": -2.4,
+      "cost": 62.14,
+      "savings": -1.57,
       "url": "https://www.iacompara.es/blog/compania-electrica-mas-barata-2026",
       "trusted": false,
       "note": ""
@@ -94,8 +94,8 @@
       "company": "Plenitude Tarifa F\u00e1cil",
       "potencia": 2.7393,
       "kwh_rate": 0.1,
-      "cost": 62.33,
-      "savings": 2.96,
+      "cost": 57.33,
+      "savings": 3.24,
       "url": "https://www.iacompara.es/blog/compania-electrica-mas-barata-2026",
       "trusted": false,
       "note": ""
@@ -104,8 +104,8 @@
       "company": "Imagina Plan Sin Horas",
       "potencia": 3.135,
       "kwh_rate": 0.119,
-      "cost": 73.61,
-      "savings": -8.32,
+      "cost": 67.66,
+      "savings": -7.09,
       "url": "https://www.iacompara.es/blog/compania-electrica-mas-barata-2026",
       "trusted": false,
       "note": ""
@@ -114,8 +114,8 @@
       "company": "Iberdrola Plan Estable",
       "potencia": 2.8611,
       "kwh_rate": 0.111,
-      "cost": 68.37,
-      "savings": -3.08,
+      "cost": 62.82,
+      "savings": -2.25,
       "url": "https://www.iacompara.es/blog/compania-electrica-mas-barata-2026",
       "trusted": false,
       "note": ""
