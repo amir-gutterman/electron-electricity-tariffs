@@ -35,6 +35,10 @@ CONSUMPTION_RATE = 0.098    # EUR/kWh
 ASSUMED_MONTHLY_KWH = 500   # variable/approximate, used for comparison only
 
 MIN_SAVINGS_THRESHOLD = 2.00  # EUR/month -- only alert above this
+IVA_PCT = 21.0               # VAT percentage (configurable; has varied 5–21% in Spain)
+
+# IEE (Impuesto Especial sobre la Electricidad) — fixed statutory rate, not configurable.
+IEE_FACTOR = 1.0511269632
 
 _cfg_path = Path(__file__).parent / "config.json"
 if _cfg_path.exists():
@@ -44,6 +48,7 @@ if _cfg_path.exists():
     CONSUMPTION_RATE = float(_cfg.get("consumption_rate", CONSUMPTION_RATE))
     ASSUMED_MONTHLY_KWH = float(_cfg.get("assumed_monthly_kwh", ASSUMED_MONTHLY_KWH))
     MIN_SAVINGS_THRESHOLD = float(_cfg.get("min_savings_threshold", MIN_SAVINGS_THRESHOLD))
+    IVA_PCT = float(_cfg.get("iva_pct", IVA_PCT))
 
 AVG_DAYS_PER_MONTH = 30.4368
 
@@ -61,6 +66,7 @@ class Offer:
         self.trusted = trusted  # official source vs third-party aggregator
         self.note = note
         self.cost = (potencia_eur_per_kw_month * CONTRACTED_POWER) + (kwh_rate * ASSUMED_MONTHLY_KWH)
+        self.cost_with_tax = self.cost * IEE_FACTOR * (1 + IVA_PCT / 100)
         self.savings = BASELINE_COST - self.cost
 
     def __str__(self):
@@ -334,6 +340,7 @@ def _make_offer_dict(offer, baseline_cost):
         "potencia": round(offer.potencia_eur_per_kw_month, 4),
         "kwh_rate": round(offer.kwh_rate, 4),
         "cost": round(offer.cost, 2),
+        "cost_with_tax": round(offer.cost_with_tax, 2),
         "savings": round(offer.savings, 2),
         "url": offer.source_url,
         "trusted": offer.trusted,
@@ -353,18 +360,21 @@ def run_check(config=None):
     consumption_rate = float(config.get("consumption_rate", CONSUMPTION_RATE)) if config else CONSUMPTION_RATE
     assumed_kwh = float(config.get("assumed_monthly_kwh", ASSUMED_MONTHLY_KWH)) if config else ASSUMED_MONTHLY_KWH
     threshold = float(config.get("min_savings_threshold", MIN_SAVINGS_THRESHOLD)) if config else MIN_SAVINGS_THRESHOLD
+    iva_pct = float(config.get("iva_pct", IVA_PCT)) if config else IVA_PCT
 
     baseline = (potencia_rate * contracted_power) + (consumption_rate * assumed_kwh)
+    baseline_with_tax = baseline * IEE_FACTOR * (1 + iva_pct / 100)
 
     # Patch globals so Offer cost/savings calculations use the live config
     import electron as _self
     orig = (_self.POTENCIA_RATE, _self.CONTRACTED_POWER, _self.CONSUMPTION_RATE,
-            _self.ASSUMED_MONTHLY_KWH, _self.BASELINE_COST)
+            _self.ASSUMED_MONTHLY_KWH, _self.BASELINE_COST, _self.IVA_PCT)
     _self.POTENCIA_RATE = potencia_rate
     _self.CONTRACTED_POWER = contracted_power
     _self.CONSUMPTION_RATE = consumption_rate
     _self.ASSUMED_MONTHLY_KWH = assumed_kwh
     _self.BASELINE_COST = baseline
+    _self.IVA_PCT = iva_pct
 
     all_offers = []
     errors = []
@@ -384,7 +394,7 @@ def run_check(config=None):
             errors.append({"parser": "parse_aggregator", "error": str(e)})
     finally:
         (_self.POTENCIA_RATE, _self.CONTRACTED_POWER, _self.CONSUMPTION_RATE,
-         _self.ASSUMED_MONTHLY_KWH, _self.BASELINE_COST) = orig
+         _self.ASSUMED_MONTHLY_KWH, _self.BASELINE_COST, _self.IVA_PCT) = orig
 
     trusted = [o for o in all_offers if o.trusted]
     best = max(trusted, key=lambda o: o.savings, default=None)
@@ -409,10 +419,12 @@ def run_check(config=None):
 
     return {
         "baseline": round(baseline, 2),
+        "baseline_with_tax": round(baseline_with_tax, 2),
         "offers": [_make_offer_dict(o, baseline) for o in all_offers],
         "best": _make_offer_dict(best, baseline) if best else None,
         "alert_sent": alert_sent,
         "threshold": threshold,
+        "iva_pct": iva_pct,
         "errors": errors,
     }
 
@@ -421,15 +433,18 @@ def _write_results(all_offers, alert_sent):
     """Write results.json into docs/ so GitHub Pages can serve it."""
     docs = Path(__file__).parent / "docs"
     docs.mkdir(exist_ok=True)
+    baseline_with_tax = BASELINE_COST * IEE_FACTOR * (1 + IVA_PCT / 100)
     payload = {
         "run_at": datetime.now(timezone.utc).isoformat(),
         "baseline": round(BASELINE_COST, 2),
+        "baseline_with_tax": round(baseline_with_tax, 2),
         "config": {
             "potencia_rate": POTENCIA_RATE,
             "contracted_power": CONTRACTED_POWER,
             "consumption_rate": CONSUMPTION_RATE,
             "assumed_monthly_kwh": ASSUMED_MONTHLY_KWH,
             "min_savings_threshold": MIN_SAVINGS_THRESHOLD,
+            "iva_pct": IVA_PCT,
         },
         "alert_sent": alert_sent,
         "offers": [

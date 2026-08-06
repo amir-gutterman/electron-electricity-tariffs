@@ -107,11 +107,18 @@ HTML = r"""<!doctype html>
     <label>Assumed monthly consumption (kWh)</label>
     <input type="number" id="assumed_monthly_kwh" value="500" step="10" min="0">
 
-    <label>Alert threshold (€/month savings)</label>
+    <label>Alert threshold (€/month savings, pre-tax)</label>
     <input type="number" id="min_savings_threshold" value="2" step="0.5" min="0">
 
+    <label>IVA / VAT (%)</label>
+    <input type="number" id="iva_pct" value="21" step="1" min="0" max="100">
+    <p style="font-size:11px;color:var(--muted);margin-top:4px">IEE electricity tax (5.11%) is always included automatically.</p>
+
     <div class="baseline-row">
-      <span class="baseline-label">Your monthly baseline</span>
+      <div>
+        <div class="baseline-label">Your monthly baseline (pre-tax)</div>
+        <div style="font-size:11px;color:var(--muted)" id="baseline-tax-label">incl. IEE + IVA: €—</div>
+      </div>
       <span class="baseline-val" id="baseline-display">€65.29</span>
     </div>
 
@@ -131,14 +138,19 @@ HTML = r"""<!doctype html>
 </div>
 
 <script>
-const fields = ['potencia_rate','contracted_power','consumption_rate','assumed_monthly_kwh','min_savings_threshold'];
+const fields = ['potencia_rate','contracted_power','consumption_rate','assumed_monthly_kwh','min_savings_threshold','iva_pct'];
+const IEE_FACTOR = 1.0511269632;
 
 function calcBaseline() {
   const p = parseFloat(document.getElementById('potencia_rate').value) || 0;
   const c = parseFloat(document.getElementById('contracted_power').value) || 0;
   const e = parseFloat(document.getElementById('consumption_rate').value) || 0;
   const k = parseFloat(document.getElementById('assumed_monthly_kwh').value) || 0;
-  document.getElementById('baseline-display').textContent = '€' + ((p*c)+(e*k)).toFixed(2);
+  const iva = parseFloat(document.getElementById('iva_pct').value) || 0;
+  const base = (p*c) + (e*k);
+  const withTax = base * IEE_FACTOR * (1 + iva/100);
+  document.getElementById('baseline-display').textContent = '€' + base.toFixed(2);
+  document.getElementById('baseline-tax-label').textContent = 'incl. IEE + IVA: €' + withTax.toFixed(2);
 }
 fields.forEach(f => document.getElementById(f).addEventListener('input', calcBaseline));
 
@@ -153,7 +165,10 @@ async function runCheck() {
   document.getElementById('errors').innerHTML = '';
 
   const config = {};
-  fields.forEach(f => config[f] = parseFloat(document.getElementById(f).value));
+  fields.forEach(f => {
+    const el = document.getElementById(f);
+    if (el) config[f] = parseFloat(el.value);
+  });
 
   try {
     const resp = await fetch('/run', {
@@ -197,7 +212,8 @@ function renderResults(data) {
       <th>Provider</th>
       <th>Potencia (€/kW/mo)</th>
       <th>Energy (€/kWh)</th>
-      <th>Est. monthly</th>
+      <th>Pre-tax</th>
+      <th>With IEE+IVA</th>
       <th>vs yours</th>
     </tr></thead><tbody>`;
 
@@ -220,6 +236,7 @@ function renderResults(data) {
       <td>${o.potencia.toFixed(4)}</td>
       <td>${o.kwh_rate.toFixed(4)}</td>
       <td>€${o.cost.toFixed(2)}</td>
+      <td><strong>€${o.cost_with_tax.toFixed(2)}</strong></td>
       <td><span class="${savClass}">${savSign}€${savAbs}/mo</span><br>${pill}</td>
     </tr>`;
   }
