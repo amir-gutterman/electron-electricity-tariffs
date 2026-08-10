@@ -1,12 +1,14 @@
 {
-  "run_at": "2026-08-03T10:42:22.676732+00:00",
+  "run_at": "2026-08-10T08:26:22.474073+00:00",
   "baseline": 60.57,
+  "baseline_with_tax": 77.04,
   "config": {
     "potencia_rate": 3.66,
     "contracted_power": 4.5,
     "consumption_rate": 0.098,
     "assumed_monthly_kwh": 450.0,
-    "min_savings_threshold": 2.0
+    "min_savings_threshold": 2.0,
+    "iva_pct": 21.0
   },
   "alert_sent": true,
   "offers": [
