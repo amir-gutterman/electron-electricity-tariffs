@@ -181,22 +181,73 @@ def parse_naturgy():
     resp.raise_for_status()
     html = resp.text
 
-    energy_match = re.search(r"<p>([\d,]+)\s*€/kWh</p>", html)
-    if not energy_match:
+    # Energy: in data-price attribute on td cells (sin impuestos, deduplicated).
+    energy_matches = re.findall(r'data-price="([\d,]+)[^"]*kWh"', html)
+    if not energy_matches:
         raise ValueError("Could not find energy price")
-    kwh_rate = to_float(energy_match.group(1))
+    kwh_rate = to_float(next(iter(set(energy_matches))))  # unique value (all duplicates equal)
 
-    # data-price (sin impuestos) vs data-price-iva (con impuestos) on each potencia cell.
-    # 2.0TD bills P1 and P2 separately — total potencia cost = sum of all period rates.
-    potencia_matches = re.findall(r'data-price="([\d,]+)\s*€/kW\*d[ií]a"', html)
+    # data-price (sin impuestos) on potencia period cells. The page duplicates
+    # rows across multiple tabs, so deduplicate before summing P1+P2.
+    potencia_matches = re.findall(r'data-price="([\d,]+)[^"]*kW\*d[ií]a"', html)
     if not potencia_matches:
         raise ValueError("Could not find potencia (sin impuestos) prices")
-    potencia_day_rate = sum(to_float(v) for v in potencia_matches)
+    unique_rates = sorted(set(to_float(v) for v in potencia_matches))
+    potencia_day_rate = sum(unique_rates)  # P1 + P2 per the 2.0TD billing rule
 
     return Offer(
         company="Naturgy (Tarifa Por Uso Luz)",
         potencia_eur_per_kw_month=potencia_day_rate * AVG_DAYS_PER_MONTH,
         kwh_rate=kwh_rate,
+        source_url=url,
+        trusted=True,
+    )
+
+
+# --- OFFICIAL parser: Pepeenergy "Tarifa Estable Luz" ---
+def parse_pepeenergy():
+    url = "https://www.pepeenergy.com/tarifas-luz/tarifa-estable-luz"
+    resp = requests.get(url, headers=HEADERS, timeout=20, allow_redirects=True)
+    resp.raise_for_status()
+    html = resp.text
+
+    # Prices are in <span class="price__value">X</span><span class="price__units">unit</span>
+    # blocks prefixed with a parent class that identifies period and type.
+    # sin-impuestos prices are the first occurrence of each class combination;
+    # con-impuestos follow immediately after (verified: 0.1199 * 1.0511 * 1.21 ≈ 0.1525).
+    price_blocks = re.findall(
+        r'class="([^"]*price--[^"]+)"[^>]*>.*?'
+        r'price__value[^>]*>([\d,]+)</span><span[^>]*price__units[^>]*>([^<]+)<',
+        html,
+        re.DOTALL,
+    )
+
+    energy_rate = None
+    potencia_p1 = None
+    potencia_p2 = None
+
+    for classes, value, unit in price_blocks:
+        unit = unit.strip()
+        val = to_float(value)
+        if "price--electricity" in classes and "price--p1" in classes and energy_rate is None:
+            energy_rate = val  # flat 24h rate, sin impuestos
+        elif "price--power" in classes and "price--p1" in classes and "price--p2" not in classes and potencia_p1 is None:
+            potencia_p1 = val  # peak potencia €/kW·día, sin impuestos
+        elif "price--power" in classes and "price--p2" in classes and potencia_p2 is None:
+            potencia_p2 = val  # off-peak potencia €/kW·día, sin impuestos
+
+    if energy_rate is None:
+        raise ValueError("Could not find energy price")
+    if potencia_p1 is None or potencia_p2 is None:
+        raise ValueError(f"Could not find potencia prices (p1={potencia_p1}, p2={potencia_p2})")
+
+    # 2.0TD: total potencia standing charge = P1 + P2 per kW per day
+    potencia_day_rate = potencia_p1 + potencia_p2
+
+    return Offer(
+        company="Pepeenergy (Tarifa Estable Luz)",
+        potencia_eur_per_kw_month=potencia_day_rate * AVG_DAYS_PER_MONTH,
+        kwh_rate=energy_rate,
         source_url=url,
         trusted=True,
     )
@@ -236,14 +287,17 @@ def parse_octopus():
 
 OFFICIAL_PARSERS = [
     parse_endesa, parse_plenitude, parse_totalenergies, parse_naturgy, parse_octopus,
+    parse_pepeenergy,
 ]
 
 # Providers checked but not scrapable with simple HTTP requests, so excluded
 # rather than risk a silently-broken parser:
 #   - Iberdrola: blocks non-browser requests (403 Access Denied)
+#   - Holaluz: blocks non-browser requests (403 Access Denied)
 #   - Gana Energía: served behind a Cloudflare JS challenge page
 #   - Podo: pricing is loaded client-side via JavaScript, not in the raw HTML
 #   - Repsol: public pages give inconsistent/ambiguous tax-inclusive figures
+#   - Lucera: page loads but all prices are JS-rendered, not in raw HTML
 
 
 # --- AGGREGATOR parser: iacompara.es blog (unverified third-party source) ---

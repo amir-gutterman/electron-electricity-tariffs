@@ -1,5 +1,5 @@
 {
-  "run_at": "2026-08-21T19:58:39.000577+00:00",
+  "run_at": "2026-08-21T20:06:23.229534+00:00",
   "baseline": 60.57,
   "baseline_with_tax": 77.04,
   "config": {
@@ -43,12 +43,32 @@
       "note": ""
     },
     {
+      "company": "Naturgy (Tarifa Por Uso Luz)",
+      "potencia": 5.6184,
+      "kwh_rate": 0.112,
+      "cost": 75.68,
+      "savings": -15.11,
+      "url": "https://www.naturgy.es/hogar/luz/tarifa_por_uso_luz",
+      "trusted": true,
+      "note": ""
+    },
+    {
       "company": "Octopus Energy (Octopus Relax)",
       "potencia": 5.6612,
       "kwh_rate": 0.124,
       "cost": 81.28,
       "savings": -20.71,
       "url": "https://octopusenergy.es/tarifa-octopus-relax",
+      "trusted": true,
+      "note": ""
+    },
+    {
+      "company": "Pepeenergy (Tarifa Estable Luz)",
+      "potencia": 5.8713,
+      "kwh_rate": 0.1199,
+      "cost": 80.38,
+      "savings": -19.81,
+      "url": "https://www.pepeenergy.com/tarifas-luz/tarifa-estable-luz",
       "trusted": true,
       "note": ""
     },
