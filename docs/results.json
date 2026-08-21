@@ -1,5 +1,5 @@
 {
-  "run_at": "2026-08-21T20:06:23.229534+00:00",
+  "run_at": "2026-08-21T20:11:33.449384+00:00",
   "baseline": 60.57,
   "baseline_with_tax": 77.04,
   "config": {
@@ -139,6 +139,36 @@
       "cost": 62.82,
       "savings": -2.25,
       "url": "https://www.iacompara.es/blog/compania-electrica-mas-barata-2026",
+      "trusted": false,
+      "note": ""
+    },
+    {
+      "company": "TotalEnergies (via selectra.es)",
+      "potencia": 5.2534,
+      "kwh_rate": 0.0999,
+      "cost": 68.6,
+      "savings": -8.03,
+      "url": "https://selectra.es/energia/companias/comparativa/tarifa-luz",
+      "trusted": false,
+      "note": ""
+    },
+    {
+      "company": "Plenitude (via selectra.es)",
+      "potencia": 6.0874,
+      "kwh_rate": 0.0973,
+      "cost": 71.18,
+      "savings": -10.61,
+      "url": "https://selectra.es/energia/companias/comparativa/tarifa-luz",
+      "trusted": false,
+      "note": ""
+    },
+    {
+      "company": "Repsol (via selectra.es)",
+      "potencia": 4.9855,
+      "kwh_rate": 0.1199,
+      "cost": 76.39,
+      "savings": -15.82,
+      "url": "https://selectra.es/energia/companias/comparativa/tarifa-luz",
       "trusted": false,
       "note": ""
     }

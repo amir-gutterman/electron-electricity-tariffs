@@ -389,6 +389,70 @@ def parse_aggregator():
     return result
 
 
+# --- AGGREGATOR parser: selectra.es comparativa page ---
+SELECTRA_URL = "https://selectra.es/energia/companias/comparativa/tarifa-luz"
+
+def parse_selectra():
+    """Parse flat-rate (24h single price) tariffs from selectra.es comparativa.
+
+    Only flat-rate entries are extracted -- time-of-use tariffs (Punta/Llano/Valle
+    energy bands) are skipped because we cannot compute a fair cost estimate without
+    knowing the user's per-period consumption split.
+    """
+    resp = requests.get(SELECTRA_URL, headers=HEADERS, timeout=20, allow_redirects=True)
+    resp.raise_for_status()
+    soup = BeautifulSoup(resp.text, "html.parser")
+    for tag in soup(["script", "style"]):
+        tag.decompose()
+    lines = [l.strip() for l in soup.get_text("\n").split("\n") if l.strip()]
+
+    COMPANY_RE = re.compile(r"^[—\-–]\s*(.+)$")
+    FLAT_KWH_RE = re.compile(r"^([\d,]+)\s*[€\xc3\xa2]/kWh$")
+    TOU_KWH_RE = re.compile(r"^(?:Punta|Llano|Valle):\s*[\d,]+\s*[€\xc3\xa2]/kWh$", re.IGNORECASE)
+    POT_RE = re.compile(r"^(?:Punta|Valle):\s*([\d,]+)\s*[€\xc3\xa2]/kW\s*d[ií]a$", re.IGNORECASE)
+
+    offers = []
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        company_m = COMPANY_RE.match(line)
+        if company_m:
+            company = company_m.group(1).strip()
+            j = i + 1
+            flat_kwh = None
+            tou = False
+            pot_rates = []
+
+            while j < min(i + 10, len(lines)):
+                nxt = lines[j]
+                if FLAT_KWH_RE.match(nxt):
+                    flat_kwh = to_float(FLAT_KWH_RE.match(nxt).group(1))
+                elif TOU_KWH_RE.match(nxt):
+                    tou = True
+                else:
+                    pm = POT_RE.match(nxt)
+                    if pm:
+                        pot_rates.append(to_float(pm.group(1)))
+                    elif re.match(r"^\d+[,\.]?\d*\s*[€\xc3\xa2]/mes", nxt) or COMPANY_RE.match(nxt):
+                        break
+                j += 1
+
+            if not tou and flat_kwh is not None and len(pot_rates) >= 2:
+                potencia_day_rate = sum(pot_rates)  # P1 + P2 per 2.0TD rule
+                offers.append(Offer(
+                    company=f"{company} (via selectra.es)",
+                    potencia_eur_per_kw_month=potencia_day_rate * AVG_DAYS_PER_MONTH,
+                    kwh_rate=flat_kwh,
+                    source_url=SELECTRA_URL,
+                    trusted=False,
+                ))
+            i = j
+            continue
+        i += 1
+
+    return offers
+
+
 def _make_offer_dict(offer, baseline_cost):
     return {
         "company": offer.company,
@@ -442,11 +506,12 @@ def run_check(config=None):
             except Exception as e:
                 errors.append({"parser": parser.__name__, "error": str(e)})
 
-        try:
-            for offer in parse_aggregator():
-                all_offers.append(offer)
-        except Exception as e:
-            errors.append({"parser": "parse_aggregator", "error": str(e)})
+        for agg_fn in [parse_aggregator, parse_selectra]:
+            try:
+                for offer in agg_fn():
+                    all_offers.append(offer)
+            except Exception as e:
+                errors.append({"parser": agg_fn.__name__, "error": str(e)})
     finally:
         (_self.POTENCIA_RATE, _self.CONTRACTED_POWER, _self.CONSUMPTION_RATE,
          _self.ASSUMED_MONTHLY_KWH, _self.BASELINE_COST, _self.IVA_PCT) = orig
@@ -535,14 +600,15 @@ def main():
         except Exception as e:
             print(f"Skipping official parser {parser.__name__}: failed ({e})")
 
-    try:
-        aggregator_offers = parse_aggregator()
-        print(f"{AGGREGATOR_URL}: found {len(aggregator_offers)} aggregator offer(s) (unverified)")
-        for offer in aggregator_offers:
-            all_offers.append(offer)
-            print(f"  {offer}")
-    except Exception as e:
-        print(f"Skipping aggregator source: failed ({e})")
+    for agg_fn, agg_url in [(parse_aggregator, AGGREGATOR_URL), (parse_selectra, SELECTRA_URL)]:
+        try:
+            agg_offers = agg_fn()
+            print(f"{agg_url}: found {len(agg_offers)} aggregator offer(s) (unverified)")
+            for offer in agg_offers:
+                all_offers.append(offer)
+                print(f"  {offer}")
+        except Exception as e:
+            print(f"Skipping aggregator {agg_url}: failed ({e})")
 
     trusted_offers = [o for o in all_offers if o.trusted]
     best = max(trusted_offers, key=lambda o: o.savings, default=None)
