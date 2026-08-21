@@ -1,5 +1,5 @@
 {
-  "run_at": "2026-08-17T07:52:37.869783+00:00",
+  "run_at": "2026-08-21T19:58:39.000577+00:00",
   "baseline": 60.57,
   "baseline_with_tax": 77.04,
   "config": {
@@ -10,7 +10,7 @@
     "min_savings_threshold": 2.0,
     "iva_pct": 21.0
   },
-  "alert_sent": true,
+  "alert_sent": false,
   "offers": [
     {
       "company": "Endesa (Tarifa Luz Fija 24h Online)",
@@ -34,20 +34,20 @@
     },
     {
       "company": "TotalEnergies (A Tu Aire Siempre)",
-      "potencia": 2.6259,
+      "potencia": 5.2518,
       "kwh_rate": 0.0999,
-      "cost": 56.77,
-      "savings": 3.8,
+      "cost": 68.59,
+      "savings": -8.02,
       "url": "https://www.totalenergies.es/es/hogares/tarifas-luz/a-tu-aire-siempre",
       "trusted": true,
       "note": ""
     },
     {
       "company": "Octopus Energy (Octopus Relax)",
-      "potencia": 2.8306,
+      "potencia": 5.6612,
       "kwh_rate": 0.124,
-      "cost": 68.54,
-      "savings": -7.97,
+      "cost": 81.28,
+      "savings": -20.71,
       "url": "https://octopusenergy.es/tarifa-octopus-relax",
       "trusted": true,
       "note": ""
