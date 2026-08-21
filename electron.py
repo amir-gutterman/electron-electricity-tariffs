@@ -162,7 +162,8 @@ def parse_totalenergies():
     if not m:
         raise ValueError("Could not find the <=10kW pricing row")
     potencia_p1, potencia_p2, kwh_rate = (to_float(m.group(i)) for i in (1, 2, 3))
-    potencia_day_rate = max(potencia_p1, potencia_p2)
+    # 2.0TD bills P1 and P2 separately — total potencia cost = P1 + P2 (not max).
+    potencia_day_rate = potencia_p1 + potencia_p2
 
     return Offer(
         company="TotalEnergies (A Tu Aire Siempre)",
@@ -185,12 +186,12 @@ def parse_naturgy():
         raise ValueError("Could not find energy price")
     kwh_rate = to_float(energy_match.group(1))
 
-    # data-price (sin impuestos) vs data-price-iva (con impuestos) on each potencia cell;
-    # take the highest "sin impuestos" period rate (Punta) as the conservative figure.
+    # data-price (sin impuestos) vs data-price-iva (con impuestos) on each potencia cell.
+    # 2.0TD bills P1 and P2 separately — total potencia cost = sum of all period rates.
     potencia_matches = re.findall(r'data-price="([\d,]+)\s*€/kW\*d[ií]a"', html)
     if not potencia_matches:
         raise ValueError("Could not find potencia (sin impuestos) prices")
-    potencia_day_rate = max(to_float(v) for v in potencia_matches)
+    potencia_day_rate = sum(to_float(v) for v in potencia_matches)
 
     return Offer(
         company="Naturgy (Tarifa Por Uso Luz)",
@@ -198,7 +199,6 @@ def parse_naturgy():
         kwh_rate=kwh_rate,
         source_url=url,
         trusted=True,
-        note="using highest (Punta) potencia period rate",
     )
 
 
@@ -222,7 +222,8 @@ def parse_octopus():
         raise ValueError("Could not find standard OCTORELAX product pricing")
     potencia_p1, potencia_p2 = to_float(m.group(2)), to_float(m.group(3))
     kwh_rate = to_float(m.group(4))  # single period -- all three values are equal
-    potencia_day_rate = max(potencia_p1, potencia_p2)
+    # 2.0TD bills P1 and P2 separately — total potencia cost = P1 + P2.
+    potencia_day_rate = potencia_p1 + potencia_p2
 
     return Offer(
         company="Octopus Energy (Octopus Relax)",
