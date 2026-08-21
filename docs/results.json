@@ -1,5 +1,5 @@
 {
-  "run_at": "2026-08-21T20:11:33.449384+00:00",
+  "run_at": "2026-08-21T20:29:12.795225+00:00",
   "baseline": 60.57,
   "baseline_with_tax": 77.04,
   "config": {
@@ -80,7 +80,7 @@
       "savings": -10.77,
       "url": "https://www.iacompara.es/blog/compania-electrica-mas-barata-2026",
       "trusted": false,
-      "note": ""
+      "note": "aggregator validated (3/4 cross-checks passed)"
     },
     {
       "company": "OCTOPUS RELAX",
@@ -90,7 +90,7 @@
       "savings": -5.97,
       "url": "https://www.iacompara.es/blog/compania-electrica-mas-barata-2026",
       "trusted": false,
-      "note": ""
+      "note": "aggregator validated (3/4 cross-checks passed)"
     },
     {
       "company": "TotalEnergies A Tu Aire Siempre",
@@ -100,7 +100,7 @@
       "savings": 1.07,
       "url": "https://www.iacompara.es/blog/compania-electrica-mas-barata-2026",
       "trusted": false,
-      "note": ""
+      "note": "aggregator validated (3/4 cross-checks passed)"
     },
     {
       "company": "Gana Energ\u00eda Tarifa 24 Horas",
@@ -109,8 +109,8 @@
       "cost": 62.14,
       "savings": -1.57,
       "url": "https://www.iacompara.es/blog/compania-electrica-mas-barata-2026",
-      "trusted": false,
-      "note": ""
+      "trusted": true,
+      "note": "aggregator validated (3/4 cross-checks passed)"
     },
     {
       "company": "Plenitude Tarifa F\u00e1cil",
@@ -120,7 +120,7 @@
       "savings": 3.24,
       "url": "https://www.iacompara.es/blog/compania-electrica-mas-barata-2026",
       "trusted": false,
-      "note": ""
+      "note": "aggregator validated (3/4 cross-checks passed)"
     },
     {
       "company": "Imagina Plan Sin Horas",
@@ -129,8 +129,8 @@
       "cost": 67.66,
       "savings": -7.09,
       "url": "https://www.iacompara.es/blog/compania-electrica-mas-barata-2026",
-      "trusted": false,
-      "note": ""
+      "trusted": true,
+      "note": "aggregator validated (3/4 cross-checks passed)"
     },
     {
       "company": "Iberdrola Plan Estable",
@@ -139,8 +139,8 @@
       "cost": 62.82,
       "savings": -2.25,
       "url": "https://www.iacompara.es/blog/compania-electrica-mas-barata-2026",
-      "trusted": false,
-      "note": ""
+      "trusted": true,
+      "note": "aggregator validated (3/4 cross-checks passed)"
     },
     {
       "company": "TotalEnergies (via selectra.es)",
@@ -150,7 +150,7 @@
       "savings": -8.03,
       "url": "https://selectra.es/energia/companias/comparativa/tarifa-luz",
       "trusted": false,
-      "note": ""
+      "note": "aggregator validated (2/2 cross-checks passed)"
     },
     {
       "company": "Plenitude (via selectra.es)",
@@ -160,7 +160,7 @@
       "savings": -10.61,
       "url": "https://selectra.es/energia/companias/comparativa/tarifa-luz",
       "trusted": false,
-      "note": ""
+      "note": "aggregator validated (2/2 cross-checks passed)"
     },
     {
       "company": "Repsol (via selectra.es)",
@@ -169,8 +169,8 @@
       "cost": 76.39,
       "savings": -15.82,
       "url": "https://selectra.es/energia/companias/comparativa/tarifa-luz",
-      "trusted": false,
-      "note": ""
+      "trusted": true,
+      "note": "aggregator validated (2/2 cross-checks passed)"
     }
   ]
 }

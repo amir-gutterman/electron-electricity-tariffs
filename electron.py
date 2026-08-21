@@ -453,6 +453,75 @@ def parse_selectra():
     return offers
 
 
+# Cross-validation tolerance: aggregator kWh rate must be within this fraction
+# of the official rate for the same company to count as a match.
+CROSS_VALIDATE_TOLERANCE = 0.05  # 5%
+
+# Keywords used to pair aggregator offers with official offers by company name.
+_COMPANY_KEYWORDS = [
+    "endesa", "plenitude", "plenitud", "totalenergies", "naturgy",
+    "octopus", "pepeenergy", "pepe energy",
+]
+
+
+def _company_keyword(name: str) -> str | None:
+    """Return the canonical keyword for a company name, or None if unknown."""
+    n = name.lower()
+    for kw in _COMPANY_KEYWORDS:
+        if kw in n:
+            return kw
+    return None
+
+
+def cross_validate_and_promote(agg_offers: list, official_offers: list) -> tuple[list, int, int]:
+    """Cross-validate aggregator offers against official scraped data.
+
+    For each aggregator offer whose company also has an official offer, compare
+    the kWh rate. If at least half of checkable pairs match within
+    CROSS_VALIDATE_TOLERANCE, the aggregator is considered validated and all
+    its offers are promoted to trusted=True (alert-eligible).
+
+    Returns (offers, matches, checks) where offers is the (possibly promoted)
+    list and matches/checks describe validation quality.
+    """
+    official_by_kw: dict[str, "Offer"] = {}
+    for o in official_offers:
+        kw = _company_keyword(o.company)
+        if kw:
+            official_by_kw[kw] = o
+
+    matches = checks = 0
+    for agg in agg_offers:
+        kw = _company_keyword(agg.company)
+        if kw and kw in official_by_kw:
+            checks += 1
+            ref = official_by_kw[kw]
+            if abs(agg.kwh_rate - ref.kwh_rate) / ref.kwh_rate <= CROSS_VALIDATE_TOLERANCE:
+                matches += 1
+
+    validated = checks > 0 and matches / checks >= 0.5
+
+    if not validated:
+        return agg_offers, matches, checks
+
+    promoted = []
+    for o in agg_offers:
+        kw = _company_keyword(o.company)
+        already_verified = kw and kw in official_by_kw
+        note_parts = [f"aggregator validated ({matches}/{checks} cross-checks passed)"]
+        if o.note:
+            note_parts.append(o.note)
+        promoted.append(Offer(
+            company=o.company,
+            potencia_eur_per_kw_month=o.potencia_eur_per_kw_month,
+            kwh_rate=o.kwh_rate,
+            source_url=o.source_url,
+            trusted=not already_verified,  # don't duplicate an offer we already have officially
+            note="; ".join(note_parts),
+        ))
+    return promoted, matches, checks
+
+
 def _make_offer_dict(offer, baseline_cost):
     return {
         "company": offer.company,
@@ -506,10 +575,11 @@ def run_check(config=None):
             except Exception as e:
                 errors.append({"parser": parser.__name__, "error": str(e)})
 
+        official_offers = [o for o in all_offers if o.trusted]
         for agg_fn in [parse_aggregator, parse_selectra]:
             try:
-                for offer in agg_fn():
-                    all_offers.append(offer)
+                promoted, _, _ = cross_validate_and_promote(agg_fn(), official_offers)
+                all_offers.extend(promoted)
             except Exception as e:
                 errors.append({"parser": agg_fn.__name__, "error": str(e)})
     finally:
@@ -600,11 +670,16 @@ def main():
         except Exception as e:
             print(f"Skipping official parser {parser.__name__}: failed ({e})")
 
+    official_offers = [o for o in all_offers if o.trusted]
+
     for agg_fn, agg_url in [(parse_aggregator, AGGREGATOR_URL), (parse_selectra, SELECTRA_URL)]:
         try:
             agg_offers = agg_fn()
-            print(f"{agg_url}: found {len(agg_offers)} aggregator offer(s) (unverified)")
-            for offer in agg_offers:
+            promoted, matches, checks = cross_validate_and_promote(agg_offers, official_offers)
+            validated = checks > 0 and matches == checks or (checks > 0 and matches / checks >= 0.5)
+            status = f"validated {matches}/{checks}" if checks > 0 else "unvalidated (no overlap)"
+            print(f"{agg_url}: {len(promoted)} offer(s) [{status}]")
+            for offer in promoted:
                 all_offers.append(offer)
                 print(f"  {offer}")
         except Exception as e:
