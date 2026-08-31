@@ -1,5 +1,5 @@
 {
-  "run_at": "2026-08-24T07:57:48.749926+00:00",
+  "run_at": "2026-08-31T14:52:33.964250+00:00",
   "baseline": 60.57,
   "baseline_with_tax": 77.04,
   "config": {
@@ -55,9 +55,9 @@
     {
       "company": "Octopus Energy (Octopus Relax)",
       "potencia": 5.6612,
-      "kwh_rate": 0.124,
-      "cost": 81.28,
-      "savings": -20.71,
+      "kwh_rate": 0.133,
+      "cost": 85.33,
+      "savings": -24.76,
       "url": "https://octopusenergy.es/tarifa-octopus-relax",
       "trusted": true,
       "note": ""
