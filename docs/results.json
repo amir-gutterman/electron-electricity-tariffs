@@ -1,5 +1,5 @@
 {
-  "run_at": "2026-10-05T15:35:21.025124+00:00",
+  "run_at": "2026-10-12T16:31:18.966629+00:00",
   "baseline": 60.57,
   "baseline_with_tax": 77.04,
   "config": {
@@ -150,27 +150,27 @@
       "savings": -8.03,
       "url": "https://selectra.es/energia/companias/comparativa/tarifa-luz",
       "trusted": false,
-      "note": "aggregator validated (2/2 cross-checks passed)"
-    },
-    {
-      "company": "Repsol (via selectra.es)",
-      "potencia": 4.9855,
-      "kwh_rate": 0.1199,
-      "cost": 76.39,
-      "savings": -15.82,
-      "url": "https://selectra.es/energia/companias/comparativa/tarifa-luz",
-      "trusted": true,
-      "note": "aggregator validated (2/2 cross-checks passed)"
+      "note": "aggregator validated (1/2 cross-checks passed)"
     },
     {
       "company": "Naturgy (via selectra.es)",
       "potencia": 5.6186,
-      "kwh_rate": 0.112,
-      "cost": 75.68,
-      "savings": -15.11,
+      "kwh_rate": 0.123,
+      "cost": 80.63,
+      "savings": -20.06,
       "url": "https://selectra.es/energia/companias/comparativa/tarifa-luz",
       "trusted": false,
-      "note": "aggregator validated (2/2 cross-checks passed)"
+      "note": "aggregator validated (1/2 cross-checks passed)"
+    },
+    {
+      "company": "Repsol (via selectra.es)",
+      "potencia": 4.9855,
+      "kwh_rate": 0.1399,
+      "cost": 85.39,
+      "savings": -24.82,
+      "url": "https://selectra.es/energia/companias/comparativa/tarifa-luz",
+      "trusted": true,
+      "note": "aggregator validated (1/2 cross-checks passed)"
     }
   ]
 }
