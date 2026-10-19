@@ -1,5 +1,5 @@
 {
-  "run_at": "2026-10-12T16:31:18.966629+00:00",
+  "run_at": "2026-10-19T14:22:44.271911+00:00",
   "baseline": 60.57,
   "baseline_with_tax": 77.04,
   "config": {
@@ -15,9 +15,9 @@
     {
       "company": "Endesa (Tarifa Luz Fija 24h Online)",
       "potencia": 2.849,
-      "kwh_rate": 0.1714,
-      "cost": 89.96,
-      "savings": -29.39,
+      "kwh_rate": 0.1855,
+      "cost": 96.32,
+      "savings": -35.75,
       "url": "https://www.endesa.com/es/luz-y-gas/luz/one/tarifa-one-luz",
       "trusted": true,
       "note": "using standard post-promo energy rate"
@@ -34,10 +34,10 @@
     },
     {
       "company": "TotalEnergies (A Tu Aire Siempre)",
-      "potencia": 5.2518,
-      "kwh_rate": 0.0999,
-      "cost": 68.59,
-      "savings": -8.02,
+      "potencia": 5.7521,
+      "kwh_rate": 0.1199,
+      "cost": 79.84,
+      "savings": -19.27,
       "url": "https://www.totalenergies.es/es/hogares/tarifas-luz/a-tu-aire-siempre",
       "trusted": true,
       "note": ""
@@ -55,9 +55,9 @@
     {
       "company": "Octopus Energy (Octopus Relax)",
       "potencia": 7.3048,
-      "kwh_rate": 0.129,
-      "cost": 90.92,
-      "savings": -30.35,
+      "kwh_rate": 0.144,
+      "cost": 97.67,
+      "savings": -37.1,
       "url": "https://octopusenergy.es/tarifa-octopus-relax",
       "trusted": true,
       "note": ""
@@ -80,7 +80,7 @@
       "savings": -10.77,
       "url": "https://www.iacompara.es/blog/compania-electrica-mas-barata-2026",
       "trusted": false,
-      "note": "aggregator validated (2/4 cross-checks passed)"
+      "note": ""
     },
     {
       "company": "OCTOPUS RELAX",
@@ -90,7 +90,7 @@
       "savings": -5.97,
       "url": "https://www.iacompara.es/blog/compania-electrica-mas-barata-2026",
       "trusted": false,
-      "note": "aggregator validated (2/4 cross-checks passed)"
+      "note": ""
     },
     {
       "company": "TotalEnergies A Tu Aire Siempre",
@@ -100,7 +100,7 @@
       "savings": 1.07,
       "url": "https://www.iacompara.es/blog/compania-electrica-mas-barata-2026",
       "trusted": false,
-      "note": "aggregator validated (2/4 cross-checks passed)"
+      "note": ""
     },
     {
       "company": "Gana Energ\u00eda Tarifa 24 Horas",
@@ -109,8 +109,8 @@
       "cost": 62.14,
       "savings": -1.57,
       "url": "https://www.iacompara.es/blog/compania-electrica-mas-barata-2026",
-      "trusted": true,
-      "note": "aggregator validated (2/4 cross-checks passed)"
+      "trusted": false,
+      "note": ""
     },
     {
       "company": "Plenitude Tarifa F\u00e1cil",
@@ -120,7 +120,7 @@
       "savings": 3.24,
       "url": "https://www.iacompara.es/blog/compania-electrica-mas-barata-2026",
       "trusted": false,
-      "note": "aggregator validated (2/4 cross-checks passed)"
+      "note": ""
     },
     {
       "company": "Imagina Plan Sin Horas",
@@ -129,8 +129,8 @@
       "cost": 67.66,
       "savings": -7.09,
       "url": "https://www.iacompara.es/blog/compania-electrica-mas-barata-2026",
-      "trusted": true,
-      "note": "aggregator validated (2/4 cross-checks passed)"
+      "trusted": false,
+      "note": ""
     },
     {
       "company": "Iberdrola Plan Estable",
@@ -139,8 +139,8 @@
       "cost": 62.82,
       "savings": -2.25,
       "url": "https://www.iacompara.es/blog/compania-electrica-mas-barata-2026",
-      "trusted": true,
-      "note": "aggregator validated (2/4 cross-checks passed)"
+      "trusted": false,
+      "note": ""
     },
     {
       "company": "TotalEnergies (via selectra.es)",
@@ -150,7 +150,7 @@
       "savings": -8.03,
       "url": "https://selectra.es/energia/companias/comparativa/tarifa-luz",
       "trusted": false,
-      "note": "aggregator validated (1/2 cross-checks passed)"
+      "note": ""
     },
     {
       "company": "Naturgy (via selectra.es)",
@@ -160,7 +160,7 @@
       "savings": -20.06,
       "url": "https://selectra.es/energia/companias/comparativa/tarifa-luz",
       "trusted": false,
-      "note": "aggregator validated (1/2 cross-checks passed)"
+      "note": ""
     },
     {
       "company": "Repsol (via selectra.es)",
@@ -169,8 +169,8 @@
       "cost": 85.39,
       "savings": -24.82,
       "url": "https://selectra.es/energia/companias/comparativa/tarifa-luz",
-      "trusted": true,
-      "note": "aggregator validated (1/2 cross-checks passed)"
+      "trusted": false,
+      "note": ""
     }
   ]
 }
