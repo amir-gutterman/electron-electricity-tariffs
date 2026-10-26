@@ -1,5 +1,5 @@
 {
-  "run_at": "2026-10-19T14:22:44.271911+00:00",
+  "run_at": "2026-10-26T13:55:53.165769+00:00",
   "baseline": 60.57,
   "baseline_with_tax": 77.04,
   "config": {
@@ -55,9 +55,9 @@
     {
       "company": "Octopus Energy (Octopus Relax)",
       "potencia": 7.3048,
-      "kwh_rate": 0.144,
-      "cost": 97.67,
-      "savings": -37.1,
+      "kwh_rate": 0.154,
+      "cost": 102.17,
+      "savings": -41.6,
       "url": "https://octopusenergy.es/tarifa-octopus-relax",
       "trusted": true,
       "note": ""
@@ -143,16 +143,6 @@
       "note": ""
     },
     {
-      "company": "TotalEnergies (via selectra.es)",
-      "potencia": 5.2534,
-      "kwh_rate": 0.0999,
-      "cost": 68.6,
-      "savings": -8.03,
-      "url": "https://selectra.es/energia/companias/comparativa/tarifa-luz",
-      "trusted": false,
-      "note": ""
-    },
-    {
       "company": "Naturgy (via selectra.es)",
       "potencia": 5.6186,
       "kwh_rate": 0.123,
@@ -168,6 +158,16 @@
       "kwh_rate": 0.1399,
       "cost": 85.39,
       "savings": -24.82,
+      "url": "https://selectra.es/energia/companias/comparativa/tarifa-luz",
+      "trusted": false,
+      "note": ""
+    },
+    {
+      "company": "Repsol (via selectra.es)",
+      "potencia": 2.6297,
+      "kwh_rate": 0.1799,
+      "cost": 92.79,
+      "savings": -32.22,
       "url": "https://selectra.es/energia/companias/comparativa/tarifa-luz",
       "trusted": false,
       "note": ""
