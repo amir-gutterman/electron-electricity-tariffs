@@ -1,5 +1,5 @@
 {
-  "run_at": "2026-10-26T13:55:53.165769+00:00",
+  "run_at": "2026-11-02T16:51:10.985658+00:00",
   "baseline": 60.57,
   "baseline_with_tax": 77.04,
   "config": {
@@ -12,16 +12,6 @@
   },
   "alert_sent": false,
   "offers": [
-    {
-      "company": "Endesa (Tarifa Luz Fija 24h Online)",
-      "potencia": 2.849,
-      "kwh_rate": 0.1855,
-      "cost": 96.32,
-      "savings": -35.75,
-      "url": "https://www.endesa.com/es/luz-y-gas/luz/one/tarifa-one-luz",
-      "trusted": true,
-      "note": "using standard post-promo energy rate"
-    },
     {
       "company": "Plenitude (F\u00e1cil Luz)",
       "potencia": 3.66,
@@ -49,16 +39,6 @@
       "cost": 75.68,
       "savings": -15.11,
       "url": "https://www.naturgy.es/hogar/luz/tarifa_por_uso_luz",
-      "trusted": true,
-      "note": ""
-    },
-    {
-      "company": "Octopus Energy (Octopus Relax)",
-      "potencia": 7.3048,
-      "kwh_rate": 0.154,
-      "cost": 102.17,
-      "savings": -41.6,
-      "url": "https://octopusenergy.es/tarifa-octopus-relax",
       "trusted": true,
       "note": ""
     },
