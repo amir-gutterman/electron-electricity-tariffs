@@ -1,5 +1,5 @@
 {
-  "run_at": "2026-11-09T17:11:28.832292+00:00",
+  "run_at": "2026-11-16T16:46:12.886220+00:00",
   "baseline": 60.57,
   "baseline_with_tax": 77.04,
   "config": {
@@ -12,6 +12,16 @@
   },
   "alert_sent": false,
   "offers": [
+    {
+      "company": "Endesa (Tarifa Luz Fija 24h Online)",
+      "potencia": 2.849,
+      "kwh_rate": 0.1855,
+      "cost": 96.32,
+      "savings": -35.75,
+      "url": "https://www.endesa.com/es/luz-y-gas/luz/one/tarifa-one-luz",
+      "trusted": true,
+      "note": "using standard post-promo energy rate"
+    },
     {
       "company": "Plenitude (F\u00e1cil Luz)",
       "potencia": 3.66,
@@ -35,9 +45,9 @@
     {
       "company": "Naturgy (Tarifa Por Uso Luz)",
       "potencia": 5.6184,
-      "kwh_rate": 0.112,
-      "cost": 75.68,
-      "savings": -15.11,
+      "kwh_rate": 0.148,
+      "cost": 91.88,
+      "savings": -31.31,
       "url": "https://www.naturgy.es/hogar/luz/tarifa_por_uso_luz",
       "trusted": true,
       "note": ""
